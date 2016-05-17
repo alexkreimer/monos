@@ -13,8 +13,40 @@ from matplotlib import pyplot as plt
 
 from collections import namedtuple
 from PIL import Image
-
+import pickle
 import multiprocessing as mp
+
+class FeatureWarehouse(object):
+    def __init__(self, corners):
+        self.corners = corners
+
+    def ft1(self, bins=5):
+        '''floating bins followed by their edges '''
+
+        deltas = self.corners[0].astype('int32') - self.corners[1].astype('int32')
+        deltas = LA.norm(deltas, axis=1)
+        
+        h, edges = np.histogram(deltas, bins=5, density=True)
+        #pylab.subplot(2,4,j*4+i+1)
+        #plt.bar(edges[:-1], h, width = 1)
+        #plt.xlim(min(edges), max(edges))
+        
+        # since the bins flat, we add edges
+        h = np.hstack([np.nan_to_num(h), edges])
+        return (h, '5bins_edges')
+
+    def ft2(self, bins=200):
+        '''uniform bins 0-200 '''
+
+        deltas = self.corners[0].astype('int32') - self.corners[1].astype('int32')
+        deltas = LA.norm(deltas, axis=1)
+        
+        h, edges = np.histogram(deltas, bins=range(bins), density=True)
+        h = np.array(np.nan_to_num(h))
+        return (h, '200bins')
+    
+    def generate(self):
+        return [self.ft1(), self.ft2()]
 
 class MatchDisplay(object):
     blend, montage = range(2)
@@ -130,7 +162,7 @@ def func(a, img, win_size):
     return val.ravel()
 
 def harris_gen(path, mask, first, last):
-    for i in range(first, last):
+    for i in range(first, last+1):
         file_path = os.path.join(path, mask % i)
         #print('reading ', file_path)
 
@@ -215,8 +247,13 @@ def main(seq):
     bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
     HH = []
     num_frames = scales.shape[0]
-    for i, (kp2, des2, img2) in enumerate(harris_gen(image_0, '%06d.png', 0, num_frames)):
-        print('seq %s: frame %d of %d' % (seq, i, num_frames))
+
+    data = {}
+    for key in data.keys():
+        data[key].append(np.array([]))
+    
+    for frame, (kp2, des2, img2) in enumerate(harris_gen(image_0, '%06d.png', 0, num_frames)):
+        print('seq %s: frame %d of %d' % (seq, frame, num_frames))
         try:
             matches = bf.match(des1, des2)
             matches = sorted(matches, key = lambda x:x.distance)
@@ -247,9 +284,15 @@ def main(seq):
             #MatchDisplay.showFeatures(img2, kp2_matched)
             xv, yv = np.meshgrid(xedges, yedges, indexing='ij')
             H = None
-            #pylab.figure()
-            for i in range(len(xedges)-1):
-                for j in range(len(yedges)-1):
+
+            xbins = len(xedges)-1
+            ybins = len(yedges)-1
+
+            for k in data.keys():
+                data[k].append(np.array([]))
+                
+            for i in range(xbins):
+                for j in range(ybins):
                     xmin, xmax = xv[i,j], xv[i+1,j]
                     ymin, ymax = yv[i,j], yv[i,j+1]
 
@@ -262,45 +305,24 @@ def main(seq):
                     kp1_bin = kp1_matched[val,:]
                     kp2_bin = kp2_matched[val,:]
 
-                    deltas = kp1_bin.astype('int32') - kp2_bin.astype('int32')
-                    deltas = LA.norm(deltas, axis=1)
-                    
-                    # TODO: this is probably wrong, since it
-                    # automatically chooses bin edges, while the edges
-                    # should be constant
-                    h, edges = np.histogram(deltas, bins=5, density=True)
-                    #pylab.subplot(2,4,j*4+i+1)
-                    #plt.bar(edges[:-1], h, width = 1)
-                    #plt.xlim(min(edges), max(edges))
+                    f = FeatureWarehouse((kp1_bin, kp2_bin)).generate()
 
-                    # sometimes kp1_bin/kp2_bin are empty
-                    if np.isnan(h).any():
-                        print('warning: empty bin')
+                    for k, val in enumerate(f):
+                        name = val[1]
+                        value = val[0]
 
-                    h = np.nan_to_num(h)
-                    try:
-                        H.dtype
-                        H = np.hstack((H,h))
-                    except AttributeError:
-                        H = h
-                    #MatchDisplay.showMatchedFeatures(img1, img2, kp1_bin, kp2_bin)
-            HH.append(H)
+                        cur_val = data.setdefault(name, [np.array([])])
+                        data[name][-1] = np.hstack([cur_val[-1], value])
+
             kp1, des1, img1 = kp2, des2, img2
-            #print(H.shape)
-            #plt.show()
         except NameError:
             kp1, des1, img1 = kp2, des2, img2
-    H = np.array(HH)
-    size = H.shape[0]
-    scales = scales[:size].reshape(size, 1)
-    data = np.hstack((scales, H))
-    
-    # shuffle the dataset along its first dimension
-    data = np.random.permutation(data)
-    test_size = int(np.ceil(.1*size))
 
-    np.savetxt('data/%s_test.txt' % seq, data[:test_size,:])
-    np.savetxt('data/%s_train.txt' % seq, data[test_size:,:])
+    scales = scales[:frame].reshape((frame,1))
+
+    for k in data.keys():
+        with open('data/%s_%s.pickle' % (seq, k), 'wb') as fd:
+            pickle.dump({'X': np.array(data[k]), 'y': scales.ravel()}, fd)
 
 if __name__ == '__main__':
     n = mp.cpu_count()
