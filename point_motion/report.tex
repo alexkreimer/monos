@@ -1,0 +1,63 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools, amssymb}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\graphicspath{ {./images/} }
+
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+\title{Image Point Motion}
+\author{alex.kreimer}
+\date{May 2016}
+
+\begin{document}
+
+\maketitle
+
+\section{Image Point Motion}
+
+Consider a 3-D point $\mathbf{X}=(X,Y,Z)^T$ and 2 cameras $P = K[I\ \mathbf{0}]$ and $P' = K[R\ \mathbf{t}]$.  The projections of the 3-D point onto the image planes are:
+\begin{align}
+\mathbf{x} &= P[\mathbf{X}^T1 ]^T = K\mathbf{X}.\\
+\mathbf{x}' &= P'[\mathbf{X}^T1 ]^T = K[R\ \mathbf{t}][\mathbf{X}^T1 ]^T\label{eq:p2}.
+\end{align}
+$K$ is invertible, thus
+\begin{equation}\label{eq:pinv}
+\mathbf{X} = K^{-1}\mathbf{x}.
+\end{equation}
+Substitute~\ref{eq:pinv} into the~\ref{eq:p2} and simplify:
+\begin{align}
+\mathbf{x}' &=  K[R\ \mathbf{t}][(K^{-1}\mathbf{x})^T 1]^T\\
+  &= [KR\ K\mathbf{t}][(K^{-1}\mathbf{x})^T 1]^T\\
+  &= KRK^{-1}\mathbf{x} + K\mathbf{t}\label{eq:p3}.
+\end{align}
+Consider the case of pure translation: ($R=I$) Eq.~\ref{eq:p3}
+becomes:
+\begin{equation}
+\mathbf{x}' = \mathbf{x} + K\mathbf{t}\label{eq:p4}.
+\end{equation}
+\textbf{Note:} $\mathbf{x},\mathbf{x}'$ are projective quantities (not the pixel coordinates). Converting them into the pixel coordinates yields (assuming $K = diag(f,f,1), \mathbf{t}=(t_1,t_2,t_3)^T$):
+\begin{align}
+(x,y)^T &= (fX/Z,fY/Z)^T.\\
+(x',y')^T &= (f(X+t_1)/(Z+t_3),f(Y+t_2)/(Z+t_3)).
+\end{align}
+The equation (9.6) in the book states:
+\begin{equation}
+\mathbf{x}' = \mathbf{x} + K\mathbf{t}/Z
+\end{equation}
+In my notation it becomes:
+\begin{align}
+\mathbf{x}' &= (x,y,1)^T + K\mathbf{t}/Z\\
+Z\mathbf{x}' &= (fX,fY,Z)^T + K\mathbf{t}
+\end{align}
+\end{document}
+
+%%% Local Variables:
+%%% mode: pdf
+%%% TeX-master: t
+%%% End:
