@@ -1,0 +1,10 @@
+\begin{thebibliography}{1}
+
+\bibitem{scaramuzza2009absolute}
+Davide Scaramuzza, Friedrich Fraundorfer, Marc Pollefeys, and Roland Siegwart.
+\newblock Absolute scale in structure from motion from a single vehicle mounted
+  camera by exploiting nonholonomic constraints.
+\newblock In {\em 2009 IEEE 12th International Conference on Computer Vision},
+  pages 1413--1419. IEEE, 2009.
+
+\end{thebibliography}

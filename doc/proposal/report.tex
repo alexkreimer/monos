@@ -1,0 +1,160 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools, amssymb}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\graphicspath{ {./images/} }
+
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+\title{Monocular Scale}
+\author{alex.kreimer}
+\date{May 2016}
+
+\begin{document}
+
+\maketitle
+
+\section{Corner Extraction and Matching}
+
+We work with pairs of subsequent images $I_1$ and $I_2$.  In each
+image we detect Harris corners. Denote by ${f1}$ and $f2$ corners from
+$I_1$ and $I_2$ respectively.  For each corner we extract square
+patches of size $n\times n$ ($n=11$), denote them by $d1$ and $d2$.
+We match features to find a set of putative correspondences.  For
+$f1_i$ its match $f2_j$ is chosen s.t. $L2$-distance
+$\norm{d1_i-d2_j}$ is minimal.
+
+Now we fit a a fundamental matrix into the two sets of features and
+reject all the corners that do not agree with it.
+
+As an output of this stage we have two sets of (matching) corners
+$\{\hat{f1}\}_{i=1}^{N}$ and $\{\hat{f2}\}_{i=1}^{N}$.
+
+\section{Feature Extraction}\label{sec:features}
+
+We bin each image into $M\times N$ grid ($M=2, N=4$).  For each bin in
+the image we compute the histogram of corner disparities.
+
+By disparity we denote the displacement of the corner, e.g., if
+$f1_i=(x1_i,y1_i)$ and (matching) $f2_i=(x2_i,y2_j)$ the disparity is
+$d_i = \norm{f1_i-f2_i} = \norm{(x1_i,y1_i)-(x2_i,y2_i)}$
+
+Each histogram has $nhist=5$ bins.  We chain all the histograms into a single feature vector of length $M*N*nhist=40$.
+
+\section{Regression Model}
+
+We are looking for $f$, s.t.
+\[
+  f(X_i) = y_i
+\]
+Where $X_i$ is a feature vector extracted from image pair $(i,i+1)$
+and $y_i$ is the magnitude of camera motion vector, computed by stereo
+visual odometry algorithm.
+
+We approximate $f$ by means of random forest regressor.
+
+\section{Experiments}
+
+The KITTI dataset has 10 sequences of various length.  For each
+sequence we compute feature vectors and translation magnitudes as
+described in \ref{sec:features}.
+
+We split each sequence into the training and test set ($.9/.1$ of data
+size respectively)
+
+We fit random forest regressor into the data.  To determine the size
+of random forest (i.e., the number of random trees in the ensemble) we
+use $k$-fold cross validation ($k=10$). The results are below:
+
+\begin{figure}
+  \centering
+  \input{cv_results}
+  \label{fig:cv}
+  \caption{Accuracy as influenced by the number of trees in the ensemble; Accuracy measured as $r^2$ coefficient of determination}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \input{fit_results}
+  \label{fig:cv}
+  \caption{Prediction results.  Each line corresponds to a prediction made by a random forest trained over a train set of this sequence and tested over a corresponding test set. 'all' shows a score of a regressor trained over all training sets combined and tested over all test sets combined; Accuracy is measured as $r^2$ coefficient of determination}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{00_feat_heatmap}
+    \caption{Sequence 00}\label{fig:00}
+  \end{subfigure}
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{01_feat_heatmap}
+    \caption{Sequence 01}\label{fig:01}
+  \end{subfigure}\\
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{02_feat_heatmap}
+    \caption{Sequence 02}\label{fig:00}
+  \end{subfigure}
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{03_feat_heatmap}
+    \caption{Sequence 03}\label{fig:03}
+  \end{subfigure}\\
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{04_feat_heatmap}
+    \caption{Sequence 04}\label{fig:04}
+  \end{subfigure}
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{05_feat_heatmap}
+    \caption{Sequence 05}\label{fig:05}
+  \end{subfigure}\\
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{06_feat_heatmap}
+    \caption{Sequence 06}\label{fig:06}
+  \end{subfigure}
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{07_feat_heatmap}
+    \caption{Sequence 07}\label{fig:07}
+  \end{subfigure}\\
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{08_feat_heatmap}
+    \caption{Sequence 08}\label{fig:08}
+  \end{subfigure}
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{09_feat_heatmap}
+    \caption{Sequence 09}\label{fig:09}
+  \end{subfigure}\\
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{10_feat_heatmap}
+    \caption{Sequence 10}\label{fig:10}
+  \end{subfigure}
+  \begin{subfigure}[b]{.45\linewidth}
+    \centering
+    \includegraphics[width=2.5in]{all_feat_heatmap}
+    \caption{Sequence all}\label{fig:all}
+  \end{subfigure}\\
+
+  \caption{Feature importance as a heat-map. Computed as weighted
+    decrease in variance.}\label{fig:1}
+\end{figure}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: pdf
+%%% TeX-master: t
+%%% End:

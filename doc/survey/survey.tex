@@ -1,0 +1,52 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools, amssymb}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\graphicspath{ {./images/} }
+
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+\title{Literature Survey: Scale Estimation in the Monocular SLAM}
+\author{Alex Kreimer}
+\date{May 2016}
+
+\begin{document}
+
+\maketitle
+
+\section{Absolute Scale in Structure from Motion from a Single Vehicle
+  Mounted Camera by Exploiting Nonholonomic
+  Constraints~\cite{scaramuzza2009absolute}}
+
+The authors propose a method to estimate the absolute scale of the
+camera motion for a single camera.  The method exploits non-holomicity
+of the car motion (e.g. the presence of the Instantaneous Center of
+Rotation during the turns.) This will work for every robot that
+adheres to Ackerman steering principle, and will not work for other
+types of vehicles). The camera needs to be offset from the
+non-steering axis of the car and then it is possible to exactly derive
+the scale of the motion from the system geometry and the the camera
+odometry estimation.
+
+\section{Reliable Scale Estimation and Correction for Monocular Visual Odometry}
+
+The authors estimate ground plane homography that related subsequent
+images.  The feature points are taken from an a-priory selected ROI.
+The contribution of the paper is to separate motion parameters and
+plane parameters.  The camera motion is estimated from all the feature
+points available in the image (not just the ROI), which makes it more
+robust.  Subsequently this estimate is used to compute the geometry of
+the ground plane from the homography (e.g. $H = K(R-tn^T/d)K^{-1}$)
+
+\bibliography{survey}{} \bibliographystyle{plain}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
